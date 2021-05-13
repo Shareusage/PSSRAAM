@@ -6,10 +6,13 @@
 
 using namespace std;
 
+////////////////////////////////////////////////////////////////////////////////
 // Class constructor  !!! НУЖНО ПЕРЕДАВАТЬ СТРУКТУРУ, ЧТО БЫ:
 //  1.  ИЗБЕЖАТЬ ЦИКЛИЧЕСКОГО ПЕРЕСЧЕТА КОНСТАНТ В МЕТОДЕ МОДЕЛИРОВАНИЯ
 //  2.  ПРОИНИЦИАЛИЗИРОВАТЬСЯ И КАК СЛЕДСТВИЕ ... см. п. 3
 //  3.  НЕ ВЫЛЕТЕТЬ, ЕСЛИ ПЕРВЫЙ ВЫЗОВ НЕ СОВПАДЕТ С НАЧАЛОМ ПАЧКИ И ПОЛЯ НЕ БУДУТ ПРОИНИЦИАЛИЗИРОВАНЫ
+////////////////////////////////////////////////////////////////////////////////
+
 Pssraam::Pssraam(const inData &iData)
 {
     // Auxiliary variables for preliminary calculations initialization
@@ -134,7 +137,7 @@ complex <double> Pssraam::Model(const inData &iData)
 }
 
 // The forming filtr's coefficients calculation method
-void Pssraam::FiltrSet (Filtr &filtr, double a_xxL, double deltaT, double D)
+inline void Pssraam::FiltrSet (Filtr &filtr, double a_xxL, double deltaT, double D)
 {
     double gamma = a_xxL * deltaT;
     double p = qExp( -gamma );
@@ -299,7 +302,7 @@ void Pssraam::PreCalc (const inData &iData)
 }
 
 // Set quadrature components modelling processes
-void Pssraam::SetProcess (Process &proc, normal_distribution<double>
+inline void Pssraam::SetProcess (Process &proc, normal_distribution<double>
                                                     distribution, mt19937 &engine)
 {
     proc.nx = distribution_0_1(engine_0_1);
@@ -315,7 +318,7 @@ void Pssraam::SetProcess (Process &proc, normal_distribution<double>
 }
 
 // Renew quadrature components modelling processes
-void Pssraam::RenewProcess (Process &proc, normal_distribution<double>
+inline void Pssraam::RenewProcess (Process &proc, normal_distribution<double>
                                      distribution, mt19937 &engine,  Filtr filtr)
 {
     proc.X = filtr.a0 * proc.nx + filtr.a1 * proc.nx_1 + filtr.b1 * proc.X_1 + filtr.b2 * proc.X_2;
@@ -323,7 +326,7 @@ void Pssraam::RenewProcess (Process &proc, normal_distribution<double>
     proc.nx_1 = proc.nx;
     proc.ny_1 = proc.ny;
     proc.nx = distribution(engine);
-    proc.ny = distribution(engine);    
+    proc.ny = distribution(engine);
     proc.X_2 = proc.X_1;
     proc.X_1 = proc.X;
     proc.Y_2 = proc.Y_1;

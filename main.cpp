@@ -40,9 +40,6 @@ int main(int argc, char *argv[])
     time.start();//вспом. контроль времени вычисления                           УДАЛИТЬ ПО ОТЛАДКЕ
 
     STRCT str;
-    STRCT* pStr;
-    pStr = &str;
-
     Pssraam cl(str);
 
     // вывод в файл
@@ -82,7 +79,7 @@ int main(int argc, char *argv[])
     printf("%s %07d %s", "\nModeling time: ", time.elapsed(), "mls.");
 
     //Автозапуск программы ананлиза
-    QProcess process;                                                           //УДАЛИТЬ ПО ОТЛАДКЕ
-    process.start("D:/Egor/NAN/QT/build-PSSRAAM-Desktop_Qt_5_12_10_MinGW_32_bit-Debug/PSSRAAM.bat");
+    // QProcess process;                                                           //УДАЛИТЬ ПО ОТЛАДКЕ
+    // process.start("D:/Egor/NAN/QT/build-PSSRAAM-Desktop_Qt_5_12_10_MinGW_32_bit-Debug/PSSRAAM.bat");
     return a.exec();
 }

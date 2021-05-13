@@ -143,14 +143,14 @@ class Pssraam
 
     // METHODS
     // The forming filtr's coefficients calculation method
-    void FiltrSet (Filtr &filtr, double a_xxL, double deltaT, double D);
+    inline void FiltrSet (Filtr &filtr, double a_xxL, double deltaT, double D);
 
     // Set quadrature components modelling processes
-    void SetProcess (Process &proc, normal_distribution<double> distribution,
+    inline void SetProcess (Process &proc, normal_distribution<double> distribution,
                                                                 mt19937 &engine);
 
     // Renew quadrature components modelling processes
-    void RenewProcess (Process &proc, normal_distribution<double> distribution,
+    inline void RenewProcess (Process &proc, normal_distribution<double> distribution,
                                                     mt19937 &engine, Filtr filtr);
 
     // Recalculation input and internal data
