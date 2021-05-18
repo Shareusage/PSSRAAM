@@ -22,10 +22,11 @@ int main(int argc, char *argv[])
     if(fileSig2d.exists())                                                      // УДАЛИТЬ ПО ОТЛАДКЕ
     {
         fileSig2d.remove();                                                     // УДАЛИТЬ ПО ОТЛАДКЕ
-        cout << "PSSRAAM.sig2d - renewed." << endl;                              // УДАЛИТЬ ПО ОТЛАДКЕ
+        //cout << "PSSRAAM.sig2d - renewed." << endl;                              // УДАЛИТЬ ПО ОТЛАДКЕ
     }
     else
-        cout << "PSSRAAM.sig2d - not exists. Created." << endl;                           // УДАЛИТЬ ПО ОТЛАДКЕ
+        ;
+        //cout << "PSSRAAM.sig2d - not exists. Created." << endl;                           // УДАЛИТЬ ПО ОТЛАДКЕ
 
     // Организация вывода для программы анализа
     QString qstr("PSSRAAM.sig2d");                                              // УДАЛИТЬ ПО ОТЛАДКЕ
@@ -39,21 +40,24 @@ int main(int argc, char *argv[])
     QTime time;  //вспом. контроль времени вычисления                           УДАЛИТЬ ПО ОТЛАДКЕ
     time.start();//вспом. контроль времени вычисления                           УДАЛИТЬ ПО ОТЛАДКЕ
 
-    STRCT str;
-    Pssraam cl(str);
+    STRCT inData;               // input Data structure
+    Pssraam pSignalSR(inData);  // Passive Signal Surface Reflected
+    // Альтернатива создания объекта класса, в конструкторе которого один(!) параметр
+    // Pssraam Pssr = inData;
 
     // вывод в файл
     QString strX = "D:/Egor/NAN/QT/PSSRAAM/Quadratures_PSSRAAM.txt";
     QFile fileX(strX);
-    if (fileX.open(QIODevice::WriteOnly))
+    bool isOpen = fileX.open(QIODevice::WriteOnly);
+    if (isOpen == true)
     {
         QTextStream writeStream(&fileX);
 
         complex <double> q;
         for(int i = 0; i <= 2850; ++i)
         {
-            str.takt = i;
-            q = cl.Model(str);
+            inData.takt = i;
+            q = pSignalSR.calculate(inData);
 
             // вывод в файл
             if(q.real() != q.imag())
@@ -62,10 +66,13 @@ int main(int argc, char *argv[])
                 rez.sprintf("%14.10f\t%14.10f", q.real(), q.imag());
                 writeStream << rez << endl;
             }
-
+//            if (i%10 == 0)
+//            {
+//                inData.isDataRenewed = true;
+//            }
             // вывод для программы анализа
             double series[2] = { q.real(), q.imag() };                          //УДАЛИТЬ ПО ОТЛАДКЕ
-            _writers->WriteMark(i, series);                                     //УДАЛИТЬ ПО ОТЛАДКЕ
+            _writers->WriteMark(i, series);                                     //УДАЛИТЬ ПО ОТЛАДКЕ            
         }
         // вывод в файл
         _writers->Close();                                                      //УДАЛИТЬ ПО ОТЛАДКЕ
@@ -75,11 +82,12 @@ int main(int argc, char *argv[])
         cout << "Can't read file." << endl;
 
     //вспом. контроль времени вычисления                                        УДАЛИТЬ ПО ОТЛАДКЕ
-    //cout << "\nModeling time: " << time.elapsed() << " mls." << endl;           //УДАЛИТЬ ПО ОТЛАДКЕ
-    printf("%s %07d %s", "\nModeling time: ", time.elapsed(), "mls.");
+    cout << "\nModeling time: " << time.elapsed() << " mls." << endl;           //УДАЛИТЬ ПО ОТЛАДКЕ
+    //printf("%s %07d %s", "\nModeling time: ", time.elapsed(), "mls.");
+
 
     //Автозапуск программы ананлиза
-    // QProcess process;                                                           //УДАЛИТЬ ПО ОТЛАДКЕ
-    // process.start("D:/Egor/NAN/QT/build-PSSRAAM-Desktop_Qt_5_12_10_MinGW_32_bit-Debug/PSSRAAM.bat");
+    QProcess process;                                                           //УДАЛИТЬ ПО ОТЛАДКЕ
+    process.start("D:/Egor/NAN/QT/build-PSSRAAM-Desktop_Qt_5_12_10_MinGW_32_bit-Debug/PSSRAAM.bat");
     return a.exec();
 }

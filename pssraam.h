@@ -14,7 +14,7 @@ using namespace std;
 // Constants defining
 #define _c      299792458                          // light speed definition
 #define toRad   0.01745329251994329576923690768489 // from degree to radians convert (M_PI / 180)
-#define div_2_c 6.6712819039630409915115342894984e-9 // 2 / light speed definition 2/с - оптимизационная константа для увеличени быстродействия
+#define div_2_c 6.6712819039630409915115342894984e-9 // 2 / light speed definition (2/с) - оптимизационная константа для увеличени быстродействия
 
 // Own used type to unbound from the name of input data external structure
 typedef STRCT inData;
@@ -44,8 +44,8 @@ typedef STRCT inData;
 #define eps_ad      param22    // radar's main lobe angle
 #define a_S         param23    // earth's surface specific EPR
 #define V_W_mean    param24    // current wind speed 10 m. earth's surface above
-#define index_surf  param25    // index of wind movable elements presence (vegetation, etc.)
-#define datachanged param26    // input data update flag (ture - update, false - unchanged)
+#define isSurfaceMove param25    // index of wind movable elements presence (vegetation, etc.)
+#define isDataRenewed param26    // input data update flag (ture - update, false - unchanged)
 #define takt        param27    // index of trajectory's point for PSSRAA-modeling(external counter)
 
 // Template for forming filter coefficients
@@ -75,8 +75,16 @@ typedef struct
 //  PSSRAAM.cs - Passive Signal Surfase Reflected Air-Air Modeling class
 class Pssraam
 {
-    // FIELDS
-    // Containers for Mersenne Twister pseudo-random number generators
+public:
+    // Class constructor !!! НУЖНО ПЕРЕДАВАТЬ СТРУКТУРУ, ЧТО БЫ ИЗБЕЖАТЬ ПЕРЕСЧЕТА КОНСТАНТ В МЕТОДЕ МОДЕЛИРОВАНИЯ
+    Pssraam(const inData &iData);
+
+    // Passive Signal Surfase Reflected Air-Air Modeling method (quadrature components computing)
+    complex <double> calculate (inData &iData);
+
+private:
+    // Member's fields
+    // Containers for Mersenne Twister pseudorandom number generators
     mt19937 engine_0_1;
     mt19937 engine_0_05;
     mt19937 engine_0_D_nML_XY;
@@ -140,28 +148,20 @@ class Pssraam
     double X_A;
     double Y_A;
 
-
     // METHODS
     // The forming filtr's coefficients calculation method
-    inline void FiltrSet (Filtr &filtr, double a_xxL, double deltaT, double D);
+    inline void setFiltr_ (Filtr &filtr, double a_xxL, double deltaT, double D);
 
     // Set quadrature components modelling processes
-    inline void SetProcess (Process &proc, normal_distribution<double> distribution,
-                                                                mt19937 &engine);
+    inline void setProcess_ (Process &proc, normal_distribution<double> distribution,
+                             mt19937 &engine);
 
     // Renew quadrature components modelling processes
-    inline void RenewProcess (Process &proc, normal_distribution<double> distribution,
-                                                    mt19937 &engine, Filtr filtr);
+    inline void renewProcess_ (Process &proc, normal_distribution<double> distribution,
+                               mt19937 &engine, Filtr filtr);
 
     // Recalculation input and internal data
-    void PreCalc (const inData &iData);
-
-public:
-    // Class constructor !!! НУЖНО ПЕРЕДАВАТЬ СТРУКТУРУ, ЧТО БЫ ИЗБЕЖАТЬ ПЕРЕСЧЕТА КОНСТАНТ В МЕТОДЕ МОДЕЛИРОВАНИЯ
-    Pssraam(const inData &iData);
-
-    // Passive Signal Surfase Reflected Air-Air Modeling method
-    complex <double> Model (const inData &iData);
+    void preCalculate_ (const inData &iData);
 };
 
 #endif // PSSRAAM_H

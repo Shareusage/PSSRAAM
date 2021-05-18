@@ -1,7 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-struct STRCT    // Real in-data stucture's name with her real fielfs names
+struct STRCT    // Real in-data stucture's name with her real fields names
 {
     long long int param1    = 10000000000; //  несущая частота зондирующего сигнала, 8-12 ГГц
     float   param2          = 0.000002;    //  длительность зондирующих импульсов БРЛС в пачке, 1-4 мкс

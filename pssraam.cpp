@@ -26,11 +26,12 @@ Pssraam::Pssraam(const inData &iData)
     // A_s_ML;        не деленные на f_0^2, т.к. f_0 может изменяться ??????
     double delTet_a_b = iData.delTet_a_bd * toRad;
     A_s_ML = (iData.P_0 * iData.G_T * iData.G_R * iData.a_S * delTet_a_b * _c *
-                                        _c) / (64 * M_PI * M_PI * M_PI);
-    A_s_SL = qPow(10, -iData.q_T / 10.0) * qPow(10, -iData.q_R / 10.0) * deleps_sl * A_s_ML;
+              _c) / (64 * M_PI * M_PI * M_PI);
+    A_s_SL = qPow(10, -iData.q_T / 10.0) * qPow(10, -iData.q_R / 10.0) *
+             deleps_sl * A_s_ML;
 
     //Random seeding contaners for a not reproducible random sequence
-    //unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    // unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 
     //Constant seeding contaners for a reproducible random sequence
     unsigned seed = 2;
@@ -43,23 +44,30 @@ Pssraam::Pssraam(const inData &iData)
     // Initialization random sequence generators components with required expectation and deviation
     distribution_0_1 = normal_distribution<double>(0, 1);
     distribution_0_05 = normal_distribution<double>(0, 0.5);
-    //distribution_0_D_nML_XY = normal_distribution<double>(0, D_nML_XY); (пере-)инициализируются в PreCalc() каждый раз, в зависи-
+    //distribution_0_D_nML_XY = normal_distribution<double>(0, D_nML_XY); (пере-)инициализируются в recalculate_() каждый раз, в зависи-
     //distribution_0_D_nSL_XY = normal_distribution<double>(0, D_nSL_XY); мости от текущих значений D_nML_XY и D_nSL_XY
 
     // Class's fields initialization in accordance current input data
-    PreCalc (iData);
-    cout << "N_sl_min = " << N_sl_min << endl;
-    cout << "N_sl_max = " << N_sl_max << endl;
-    cout << "N_ml_min = " << N_ml_min << endl;
-    cout << "N_ml_max = " << N_ml_max << endl;
+    preCalculate_ (iData);
+//    cout << "N_sl_min = " << N_sl_min << endl;
+//    cout << "N_sl_max = " << N_sl_max << endl;
+//    cout << "N_ml_min = " << N_ml_min << endl;
+//    cout << "N_ml_max = " << N_ml_max << endl;
 }
 
-// Passive Signal Surfase Reflected Air-Air Modeling method
-complex <double> Pssraam::Model(const inData &iData)
+// Passive Signal Surfase Reflected Air-Air Modeling method (quadrature components computing)
+complex <double> Pssraam::calculate(inData &iData)
 {
-    if(iData.datachanged)
+    if(iData.isDataRenewed == true)
     {
-            PreCalc (iData);
+        preCalculate_ (iData);
+        iData.isDataRenewed = false; // Reset flag of renewed input data
+                                     // after reading and recalculation
+                                     // Лучше, если это будет делать программа
+                                     // сценария самостоятельно (устанавливать
+                                     // и сбрасывать этот флаг), что бы исключить
+                                     // случайный доступ по записи к элементам
+                                     // структуры вх. данных из класса Pssraam(const inData &iData)
     }
 
     // Modelling quadrature components initialization
@@ -73,12 +81,12 @@ complex <double> Pssraam::Model(const inData &iData)
     int m = iData.takt % N_s;
     if( m == 0)
     {
-        SetProcess (proc_DML, distribution_0_05, engine_0_05);
-        SetProcess (proc_DSL, distribution_0_05, engine_0_05);
-        if (iData.index_surf && iData.V_W_mean)
+        setProcess_ (proc_DML, distribution_0_05, engine_0_05);
+        setProcess_ (proc_DSL, distribution_0_05, engine_0_05);
+        if (iData.isSurfaceMove && iData.V_W_mean)
         {
-            SetProcess (proc_nML, distribution_0_D_nML_XY, engine_0_D_nML_XY);
-            SetProcess (proc_nSL, distribution_0_D_nSL_XY, engine_0_D_nSL_XY);
+            setProcess_ (proc_nML, distribution_0_D_nML_XY, engine_0_D_nML_XY);
+            setProcess_ (proc_nSL, distribution_0_D_nSL_XY, engine_0_D_nSL_XY);
         }
     }
     else
@@ -86,10 +94,10 @@ complex <double> Pssraam::Model(const inData &iData)
         // Signal imitation for Side Lobe
         if(m >= N_sl_min && m < N_sl_max)
         {
-            RenewProcess (proc_DSL, distribution_0_1, engine_0_1,  filtr_DSL);
-            if (iData.index_surf && iData.V_W_mean)
+            renewProcess_ (proc_DSL, distribution_0_1, engine_0_1,  filtr_DSL);
+            if (iData.isSurfaceMove && iData.V_W_mean)
             {
-                RenewProcess (proc_nSL, distribution_0_1, engine_0_1,  filtr_nSL);
+                renewProcess_ (proc_nSL, distribution_0_1, engine_0_1,  filtr_nSL);
             }
             else
             {
@@ -104,10 +112,10 @@ complex <double> Pssraam::Model(const inData &iData)
             // Signal imitation for Main Lobe
             if(m >= N_ml_min && m <= N_ml_max)
             {
-                RenewProcess (proc_DML, distribution_0_1, engine_0_1,  filtr_DML);
-                if (iData.index_surf && iData.V_W_mean)
+                renewProcess_ (proc_DML, distribution_0_1, engine_0_1,  filtr_DML);
+                if (iData.isSurfaceMove && iData.V_W_mean)
                 {
-                    RenewProcess (proc_nML, distribution_0_1, engine_0_1,  filtr_nML);
+                    renewProcess_ (proc_nML, distribution_0_1, engine_0_1,  filtr_nML);
                 }
                 else
                 {
@@ -137,12 +145,12 @@ complex <double> Pssraam::Model(const inData &iData)
 }
 
 // The forming filtr's coefficients calculation method
-inline void Pssraam::FiltrSet (Filtr &filtr, double a_xxL, double deltaT, double D)
+inline void Pssraam::setFiltr_ (Filtr &filtr, double a_xxL, double deltaT, double D)
 {
     double gamma = a_xxL * deltaT;
     double p = qExp( -gamma );
     double a_0 = p * p * p * (1 + gamma) - p * (1 - gamma);
-    double a_1 = 1 - 4 * p * p * gamma - p * p * p * p;    
+    double a_1 = 1.0 - 4 * p * p * gamma - p * p * p * p;
     filtr.a0 = qSqrt(D) * qSqrt((a_1 * a_1 + qSqrt(a_1 * a_1 - 4 * a_0 * a_0)) / 2);
     filtr.a1 = a_0 * qSqrt(D) / a_1;
     filtr.b1 = 2 * p;
@@ -150,7 +158,7 @@ inline void Pssraam::FiltrSet (Filtr &filtr, double a_xxL, double deltaT, double
 }
 
 // Recalculation input and internal data
-void Pssraam::PreCalc (const inData &iData)
+void Pssraam::preCalculate_ (const inData &iData)
 {
     double b_f_V    = iData.b_f_Vd * toRad;
     double eps_f_V  = iData.eps_f_Vd * toRad;
@@ -199,13 +207,13 @@ void Pssraam::PreCalc (const inData &iData)
     // Dopler's frequency offsets calculation
     double f_h_D;       //  for main lobe upper edge
     f_h_D = div_2_c * iData.f_0 * iData.V_f_m * (e_f_V.x()*e_1_h.x() + e_f_V.y() *
-                                  e_1_h.y() + e_f_V.z() * e_1_h.z());
+            e_1_h.y() + e_f_V.z() * e_1_h.z());
     double f_l_D;       //  for main lobe lower edge
     f_l_D = div_2_c * iData.f_0 * iData.V_f_m * (e_f_V.x()*e_1_l.x() + e_f_V.y() *
-                                  e_1_l.y() + e_f_V.z() * e_1_l.z());
+            e_1_l.y() + e_f_V.z() * e_1_l.z());
     double f_sl_D;      //  for side lobe left edge
     f_sl_D = div_2_c * iData.f_0 * iData.V_f_m * (e_f_V.x()*e_1_sl.x() + e_f_V.y() *
-                                e_1_sl.y() + e_f_V.z() * e_1_sl.z());
+             e_1_sl.y() + e_f_V.z() * e_1_sl.z());
 
     // Range of Dopler's frequenciey calculation
     double delf_ML_D;   //  with main lobe received signal
@@ -243,8 +251,8 @@ void Pssraam::PreCalc (const inData &iData)
     double r_Gmax;
     r_Gmax = H_f / qTan(qAbs(eps_a) - delTet_a_e_div2);
     double sig_2_nML;
-    sig_2_nML = iData.T_0 * A_s_ML * (1 / (r_Gmin * r_Gmin) - 1 / (r_Gmax * r_Gmax))
-                                        / (iData.T_r * 2 * iData.f_0 * iData.f_0);
+    sig_2_nML = iData.T_0 * A_s_ML * (1 / (r_Gmin * r_Gmin) - 1 / (r_Gmax * r_Gmax)) /
+                (iData.T_r * 2 * iData.f_0 * iData.f_0);
 
     // Computing the signal quadrature components dispersion
     // reflected from Earth surface and received with antenna's main lobes
@@ -294,15 +302,15 @@ void Pssraam::PreCalc (const inData &iData)
 
     if(delf_nML != 0)
     {
-        FiltrSet(filtr_nML, a_nML, iData.delt, D_nML_XY);
-        FiltrSet(filtr_nSL, a_nSL, iData.delt, D_nSL_XY);
+        setFiltr_(filtr_nML, a_nML, iData.delt, D_nML_XY);
+        setFiltr_(filtr_nSL, a_nSL, iData.delt, D_nSL_XY);
     }
-    FiltrSet(filtr_DML, a_DML, iData.delt, 0.5);
-    FiltrSet(filtr_DSL, a_DSL, iData.delt, 0.5);
+    setFiltr_(filtr_DML, a_DML, iData.delt, 0.5);
+    setFiltr_(filtr_DSL, a_DSL, iData.delt, 0.5);
 }
 
 // Set quadrature components modelling processes
-inline void Pssraam::SetProcess (Process &proc, normal_distribution<double>
+inline void Pssraam::setProcess_ (Process &proc, normal_distribution<double>
                                                     distribution, mt19937 &engine)
 {
     proc.nx = distribution_0_1(engine_0_1);
@@ -318,11 +326,13 @@ inline void Pssraam::SetProcess (Process &proc, normal_distribution<double>
 }
 
 // Renew quadrature components modelling processes
-inline void Pssraam::RenewProcess (Process &proc, normal_distribution<double>
+inline void Pssraam::renewProcess_ (Process &proc, normal_distribution<double>
                                      distribution, mt19937 &engine,  Filtr filtr)
 {
-    proc.X = filtr.a0 * proc.nx + filtr.a1 * proc.nx_1 + filtr.b1 * proc.X_1 + filtr.b2 * proc.X_2;
-    proc.Y = filtr.a0 * proc.ny + filtr.a1 * proc.ny_1 + filtr.b1 * proc.Y_1 + filtr.b2 * proc.Y_2;
+    proc.X = filtr.a0 * proc.nx + filtr.a1 * proc.nx_1 + filtr.b1 * proc.X_1 +
+             filtr.b2 * proc.X_2;
+    proc.Y = filtr.a0 * proc.ny + filtr.a1 * proc.ny_1 + filtr.b1 * proc.Y_1 +
+             filtr.b2 * proc.Y_2;
     proc.nx_1 = proc.nx;
     proc.ny_1 = proc.ny;
     proc.nx = distribution(engine);
